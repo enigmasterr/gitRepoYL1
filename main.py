@@ -4,13 +4,15 @@ import sys
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QWidget, QMainWindow, QTableWidgetItem, QMessageBox
+from addEditUI import Ui_Form
+from mainUI import Ui_MainWindow
 
-
-class DBSample(QMainWindow):
+class DBSample(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi('main.ui', self)
-        self.connection = sqlite3.connect("coffee.sqlite")
+        self.setupUi(self)
+        # uic.loadUi('main.ui', self)
+        self.connection = sqlite3.connect("data/coffee.sqlite")
         self.pushButton.clicked.connect(self.select_data)
         self.pushButton_2.clicked.connect(self.addEditBD)
         # По умолчанию будем выводить все данные из таблицы films
@@ -37,15 +39,16 @@ class DBSample(QMainWindow):
         # с базой данных
         self.connection.close()
 
-class SecondForm(QWidget):
+class SecondForm(QWidget, Ui_Form):
     def __init__(self, *args):
         super().__init__()
-        uic.loadUi('addEditCoffeeForm.ui', self)
+        self.setupUiAddEdit(self)
+        # uic.loadUi('addEditCoffeeForm.ui', self)
+        self.connection2 = sqlite3.connect("data/coffee.sqlite")
         self.pushButtonAdd.clicked.connect(self.addDataToDB)
         self.pushButtonEdit.clicked.connect(self.editDataInBD)
 
     def addDataToDB(self):
-        self.connection = sqlite3.connect("coffee.sqlite")
         ans = [''] * 7
         ans[0] = int(self.lineEdit.text())
         ans[1] = self.lineEdit_2.text()
@@ -56,12 +59,11 @@ class SecondForm(QWidget):
         ans[6] = int(self.lineEdit_7.text())
         print(ans)
         que = """INSERT INTO coffee (Id, Name, Roasting, Grounded, Taste, Cost, Volume) VALUES (?, ?, ?, ?, ?, ?, ?)"""
-        self.connection.cursor().execute(que, ans)
-        self.connection.commit()
+        self.connection2.cursor().execute(que, ans)
+        self.connection2.commit()
 
 
     def editDataInBD(self):
-        self.connection = sqlite3.connect("coffee.sqlite")
         ans = [''] * 7
         ans[0] = int(self.lineEdit.text())
         ans[1] = self.lineEdit_2.text()
@@ -71,7 +73,7 @@ class SecondForm(QWidget):
         ans[5] = int(self.lineEdit_6.text())
         ans[6] = int(self.lineEdit_7.text())
         print(ans)
-        result = self.connection.cursor().execute("SELECT * FROM coffee WHERE id=?",(ans[0],)).fetchall()
+        result = self.connection2.cursor().execute("SELECT * FROM coffee WHERE id=?",(ans[0],)).fetchall()
         print(result)
         if not result:
             QMessageBox.information(self, "Предупреждение!", "Такого ID не нашлось!")
@@ -90,9 +92,13 @@ class SecondForm(QWidget):
                 print(ans)
                 QMessageBox.information(self, "Предупреждение!", f"Данные с ID {ans[0]} изменены!")
                 que = """UPDATE coffee SET Name = ?, Roasting = ?, Grounded = ?, Taste = ?, Cost = ?, Volume = ? WHERE id = ?"""
-                self.connection.cursor().execute(que, ans[1:] + [ans[0]])
-                self.connection.commit()
+                self.connection2.cursor().execute(que, ans[1:] + [ans[0]])
+                self.connection2.commit()
 
+    def closeEvent(self, event):
+        # При закрытии формы закроем и наше соединение
+        # с базой данных
+        self.connection2.close()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
